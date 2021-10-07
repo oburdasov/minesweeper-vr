@@ -26,15 +26,25 @@ loader.load(
   (loadedFont) => (font = loadedFont)
 );
 
-export function createText(
+export function createNumber(
   position: {x: number; y: number; z: number},
   text: string,
-  cubeSize: number
+  cubeSize: number,
+  gridCoordinates,
 ): Mesh {
+  const boxGeometry = new BoxGeometry(cubeSize, cubeSize, cubeSize);
+  const boxMaterial = new MeshBasicMaterial({
+    color: colors.cube,
+  });
+
+  boxMaterial.transparent = true;
+  boxMaterial.opacity = 0;
+  const numberBox = new Mesh(boxGeometry, boxMaterial);
+
   const geometry = new TextGeometry(text, {
     font,
     size: cubeSize / 2.5,
-    height: 0,
+    height: 0.001,
   });
   geometry.center();
 
@@ -43,10 +53,15 @@ export function createText(
   material.opacity = 0.7;
   const textObject = new Mesh(geometry, material);
 
-  textObject.position.set(position.x, position.y, position.z);
-  textObject.name = 'number';
+  numberBox.position.set(position.x, position.y, position.z);
+  numberBox.add(textObject);
 
-  return textObject;
+  numberBox.name = 'number-box';
+  numberBox.renderOrder = 1;
+  numberBox.userData.coordinates = {...gridCoordinates};
+  numberBox.userData.number = text;
+
+  return numberBox;
 }
 
 export function createCube(

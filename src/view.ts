@@ -14,7 +14,7 @@ import {XRControllerModelFactory} from 'three/examples/jsm/webxr/XRControllerMod
 
 import {colors} from './colors';
 import {difficulties} from './game';
-import {createMine, createText} from './objects';
+import {createMine, createNumber} from './objects';
 import {playSound, Sounds} from './sounds';
 
 export class View {
@@ -27,7 +27,7 @@ export class View {
   isInteractionDisabled: boolean;
   private isEndAnimationRunning: boolean;
 
-  private numberObjects: Object3D[] = [];
+  numberObjects: Object3D[] = [];
 
   constructor() {
     this.scene.add(this.playground);
@@ -37,18 +37,18 @@ export class View {
     let headsetPosition = new Vector3().setFromMatrixPosition(this.camera.matrixWorld);
     let {x, y, z} = headsetPosition;
     this.playground.position.set(x + 0.03, y - 0.1, z - 0.3);
-    this.playground.rotateY(45 * (Math.PI / 180));
+    this.playground.rotation.set(0, 45 * (Math.PI / 180), 0);
   }
 
   rotateNumbersToCamera() {
     if (!this.isEndAnimationRunning) {
       let headsetPosition = new Vector3().setFromMatrixPosition(this.camera.matrixWorld);
-      this.numberObjects.forEach((n) => n.lookAt(headsetPosition));
+      this.numberObjects.forEach((n) => n.children[0].lookAt(headsetPosition));
     }
   }
 
   swapCubeWithNumber(object: Mesh) {
-    let number = createText(object.position, object.userData.minesCount + '', this.cubeSize);
+    let number = createNumber(object.position, object.userData.minesCount + '', this.cubeSize, {...object.userData.coordinates});
     this.grid.remove(object);
     this.numberObjects.push(number);
     this.playground.add(number);
@@ -150,6 +150,9 @@ export class View {
     let selectorLength = 0.075;
     line.scale.z = selectorLength;
     line.material.linewidth = 5;
+    const helperPoint = new Line(geometry, material);
+    helperPoint.position.setZ(-0.075);
+    helperPoint.scale.z = 0;
 
     const controllers = [];
 
@@ -157,6 +160,7 @@ export class View {
       const controller = renderer.xr.getController(i);
       this.scene.add(controller);
       controller.add(line.clone());
+      controller.add(helperPoint.clone());
       controller.userData.index = i;
       controller.userData.selectorLength = 0.075;
 

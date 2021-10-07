@@ -2,6 +2,7 @@ import {
   Euler,
   Geometry,
   Group,
+  Intersection,
   Material,
   Matrix4,
   Mesh,
@@ -25,6 +26,7 @@ let isDarkTheme = true;
 export class Controls {
   private controllers: Group[];
   private selectedCubes = [];
+  private intersectedNumbers = [];
 
   private controllerInitialMatrix: Matrix4;
   private playgroundInitialMatrix: Matrix4;
@@ -38,6 +40,7 @@ export class Controls {
   private isButtonAPressed: boolean;
   private isButtonBPressed: boolean;
   private isLeftButtonAPressed: boolean;
+  private isLeftButtonBPressed: boolean;
 
   constructor(private view: View, private game: Game, private renderer: WebGLRenderer) {
     this.controllers = view.buildControllers(renderer);
@@ -82,14 +85,15 @@ export class Controls {
   }
 
   updateSelectorLength(source: XRInputSource) {
-    let controller = this.controllers[source.handedness === 'right' ? 0 : 1];
+    let controller = this.controllers[source.handedness === 'left' ? 0 : 1];
     controller.userData.selectorLength = Math.max(
       controller.userData.selectorLength - source.gamepad.axes[3] / 500,
       0.025
     );
     controller.children[0].scale.z = controller.userData.selectorLength;
+    controller.children[1].position.z = -controller.userData.selectorLength;
 
-    let intersects = this.getIntersects(controller);
+    let intersects = this.getIntersectedCubes(controller);
     let selected = this.selectedCubes[controller.userData.index];
 
     if (selected && intersects[0]?.distance > controller.userData.selectorLength) {
@@ -145,6 +149,15 @@ export class Controls {
       } else {
         this.isLeftButtonAPressed = false;
       }
+
+      if (source.gamepad.buttons[5]?.pressed) {
+        if (!this.isLeftButtonBPressed) {
+          this.view.setPlaygroundPosition();
+        }
+        this.isLeftButtonBPressed = true;
+      } else {
+        this.isLeftButtonBPressed = false;
+      }
     }
   }
 
@@ -152,7 +165,7 @@ export class Controls {
     this.controllers.forEach((c: any) => c.children[0].material.color.set(colors.selector));
   }
 
-  private getIntersects(controller: Group) {
+  private getIntersectedCubes(controller: Group): Intersection[] {
     workingMatrix.identity().extractRotation(controller.matrixWorld);
 
     raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
@@ -161,10 +174,18 @@ export class Controls {
     return raycaster.intersectObjects(this.view.grid?.children);
   }
 
+  private getIntersectedNumbers(controller: Group): Intersection[] {
+    workingMatrix.identity().extractRotation(controller.matrixWorld);
+
+    raycaster.ray.origin.setFromMatrixPosition(controller.children[0].matrixWorld);
+    raycaster.ray.direction.set(0, 0, -1).applyMatrix4(workingMatrix);
+
+    return raycaster.intersectObjects(this.view.playground?.children.filter(obj => obj.name === 'number-box'));
+  }
+
   private handleController(controller: Group) {
     let selected = this.selectedCubes[controller.userData.index];
-
-    let intersects = this.getIntersects(controller);
+    let intersects = this.getIntersectedCubes(controller);
 
     if (
       selected &&
@@ -180,6 +201,7 @@ export class Controls {
       object.material.opacity = 1;
       object.scale.set(1.2, 1.2, 1.2);
       controller.children[0].scale.z = intersects[0].distance;
+      this.unmarkNumber(controller);
 
       if (this.selectedCubes[controller.userData.index]?.object.id !== intersects[0].object.id) {
         playSound(Sounds.HOVER);
@@ -187,6 +209,7 @@ export class Controls {
       this.selectedCubes[controller.userData.index] = intersects[0];
     } else {
       controller.children[0].scale.z = controller.userData.selectorLength;
+      this.handleNumberIntersections(controller);
     }
 
     if (
@@ -204,6 +227,56 @@ export class Controls {
       this.handleSqueeze(controller);
     }
   }
+
+  private handleNumberIntersections(controller) {
+    let intersectedNumber = this.intersectedNumbers[controller.userData.index];
+
+
+    let numbers = this.getIntersectedNumbers(controller);
+    let selectorPointPosition = new Vector3().setFromMatrixPosition(controller.children[1].matrixWorld)
+
+    let closest = numbers.sort((a, b) => {
+      let aPosition = new Vector3().setFromMatrixPosition(a.object.children[0].matrixWorld);
+      let bPosition = new Vector3().setFromMatrixPosition(b.object.children[0].matrixWorld);
+
+      return aPosition.distanceTo(selectorPointPosition) - bPosition.distanceTo(selectorPointPosition);
+    })[0];
+
+    if (
+      intersectedNumber &&
+      ((closest && intersectedNumber.object.id !== closest?.object.id) || !numbers.length)
+    ) {
+      this.unmarkNumber(controller);
+    }
+
+    if (numbers.length > 0 && closest.distance < controller.userData.selectorLength) {
+      const object = closest.object.children[0] as Mesh<Geometry, Material>;
+      object.material.opacity = 1;
+      object.scale.set(1.5, 1.5, 1.5);
+      this.intersectedNumbers[controller.userData.index] = closest;
+
+      // this.getAdjacentCubes(closest.object).forEach((cube: any) => cube.children[0].material.color.set(colors.markedEdges));
+    }
+  }
+
+  private unmarkNumber(controller) {
+    let intersectedNumber = this.intersectedNumbers[controller.userData.index];
+    if (intersectedNumber) {
+      intersectedNumber.object.children[0].scale.set(1, 1, 1);
+      intersectedNumber.object.children[0].material.opacity = 0.7;
+      this.intersectedNumbers[controller.userData.index] = null;
+  
+      // this.view.grid.children.forEach((cube: any) => cube.children[0].material.color.set(colors.edges));
+    }
+  }
+
+  // private getAdjacentCubes(numBox): Object3D[] {
+  //   return this.view.grid.children.filter(cube => {
+  //     return Math.abs(cube.userData.coordinates.x - numBox.userData.coordinates.x) < 2 && 
+  //     Math.abs(cube.userData.coordinates.y - numBox.userData.coordinates.y) < 2 && 
+  //     Math.abs(cube.userData.coordinates.z - numBox.userData.coordinates.z) < 2
+  //   })
+  // }
 
   private handleClick(controller) {
     let selected = this.selectedCubes[controller.userData.index];
@@ -260,15 +333,10 @@ export class Controls {
       );
 
       let controllerRotation = new Euler().setFromRotationMatrix(this.controllerInitialMatrix);
-      let playgroundInitialRotation = new Euler().setFromRotationMatrix(
-        this.playgroundInitialMatrix
-      );
 
-      this.view.playground.rotation.set(
-        playgroundInitialRotation.x - (controllerRotation.x - controller.rotation.x),
-        playgroundInitialRotation.y - (controllerRotation.y - controller.rotation.y),
-        playgroundInitialRotation.z - (controllerRotation.z - controller.rotation.z)
-      );
+      let axis = new Vector3();
+      controller.getWorldDirection(axis);
+      this.view.playground.rotateOnWorldAxis(axis.normalize(), Math.max(Math.min((controller.rotation.z - controllerRotation.z) / 25, 0.05), -0.05));
     }
   }
 

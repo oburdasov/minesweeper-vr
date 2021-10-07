@@ -11,6 +11,7 @@ export const lightTheme = {
   10: 0x091011,
   mine: 0x454545,
   edges: 0xb3b3b3,
+  markedEdges: 0xbf4e4e,
   selector: 0x545454,
   cube: 0x6e6c6b,
   background: '#cfcfcf'
@@ -29,6 +30,7 @@ export const darkTheme = {
   10: 0x091011,
   mine: 0x171717,
   edges: 0x383838,
+  markedEdges: 0xbf4e4e,
   selector: 0xb3b3b3,
   cube: 0xcfcfcf,
   background: '#222326'

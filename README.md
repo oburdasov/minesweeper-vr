@@ -1,4 +1,4 @@
-Play here: https://oburdasov.github.io/Minesweeper-VR/
+Play here: https://oburdasov.github.io/minesweeper-vr/
 ---
 ![](gameplay.gif)
 
