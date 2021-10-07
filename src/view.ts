@@ -48,10 +48,12 @@ export class View {
   }
 
   swapCubeWithNumber(object: Mesh) {
-    let number = createNumber(object.position, object.userData.minesCount + '', this.cubeSize, {...object.userData.coordinates});
-    this.grid.remove(object);
-    this.numberObjects.push(number);
-    this.playground.add(number);
+    if(this.grid.getObjectById(object.id)) {
+      let number = createNumber(object.position, object.userData.minesCount + '', this.cubeSize, {...object.userData.coordinates});
+      this.grid.remove(object);
+      this.numberObjects.push(number);
+      this.playground.add(number);
+    }
   }
 
   showMines() {

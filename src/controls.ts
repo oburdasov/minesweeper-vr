@@ -183,44 +183,75 @@ export class Controls {
     return raycaster.intersectObjects(this.view.playground?.children.filter(obj => obj.name === 'number-box'));
   }
 
+  private getClosestObject(intersects: Intersection[], controller: Group) {
+    let selectorPointPosition = new Vector3().setFromMatrixPosition(controller.children[1].matrixWorld)
+
+    return intersects.sort((a, b) => {
+      let aPosition = new Vector3().setFromMatrixPosition(a.object.children[0].matrixWorld);
+      let bPosition = new Vector3().setFromMatrixPosition(b.object.children[0].matrixWorld);
+
+      return aPosition.distanceTo(selectorPointPosition) - bPosition.distanceTo(selectorPointPosition);
+    })[0];
+  }
+
   private handleController(controller: Group) {
-    let selected = this.selectedCubes[controller.userData.index];
-    let intersects = this.getIntersectedCubes(controller);
+    let selectedCube = this.selectedCubes[controller.userData.index];
+    let intersects = this.getIntersectedCubes(controller).concat(this.getIntersectedNumbers(controller));
+    let closest = this.getClosestObject(intersects, controller);
 
-    if (
-      selected &&
-      ((intersects[0] && selected.object.id !== intersects[0]?.object.id) || !intersects.length)
-    ) {
-      selected.object.material.opacity = selected.object.userData.markedMine ? 0.7 : 0.4;
-      selected.object.scale.set(1, 1, 1);
-      this.selectedCubes[controller.userData.index] = null;
-    }
-
-    if (intersects.length > 0 && intersects[0].distance < controller.userData.selectorLength) {
-      const object = intersects[0].object as Mesh<Geometry, Material>;
-      object.material.opacity = 1;
-      object.scale.set(1.2, 1.2, 1.2);
-      controller.children[0].scale.z = intersects[0].distance;
-      this.unmarkNumber(controller);
-
-      if (this.selectedCubes[controller.userData.index]?.object.id !== intersects[0].object.id) {
-        playSound(Sounds.HOVER);
+    if (closest?.object.name === 'number-box') {
+      let intersectedNumber = this.intersectedNumbers[controller.userData.index];
+      if (
+        intersectedNumber &&
+        ((closest && intersectedNumber.object.id !== closest?.object.id) || !intersects.length)
+      ) {
+        this.unhoverNumber(controller);
       }
-      this.selectedCubes[controller.userData.index] = intersects[0];
-    } else {
-      controller.children[0].scale.z = controller.userData.selectorLength;
-      this.handleNumberIntersections(controller);
-    }
+  
+      if (intersects.length > 0 && closest.distance < controller.userData.selectorLength) {
+        const object = closest.object.children[0] as Mesh<Geometry, Material>;
+        object.material.opacity = 1;
+        object.scale.set(1.5, 1.5, 1.5);
+        this.intersectedNumbers[controller.userData.index] = closest;
+  
+        // this.getAdjacentCubes(closest.object).forEach((cube: any) => cube.children[0].material.color.set(colors.markedEdges));
+      }
 
-    if (
-      controller.userData.selectPressed &&
-      selected &&
-      this.isHoveredOnSelectStart &&
-      Date.now() - this.selectPressedTime > 500 &&
-      !this.view.isInteractionDisabled
-    ) {
-      toggleFlag(selected.object);
-      this.selectPressedTime = Date.now() + 6.048e8;
+      if (selectedCube) {
+        this.unhoverCube(controller, selectedCube);
+      }
+    } else {
+
+      if (
+        selectedCube &&
+        ((closest && selectedCube.object.id !== closest?.object.id) || !intersects.length)
+      ) {
+        this.unhoverCube(controller, selectedCube);
+      }
+  
+      if (intersects.length > 0 && closest.distance < controller.userData.selectorLength) {
+        const object = closest.object as Mesh<Geometry, Material>;
+        object.material.opacity = 1;
+        object.scale.set(1.2, 1.2, 1.2);
+        this.unhoverNumber(controller);
+  
+        if (this.selectedCubes[controller.userData.index]?.object.id !== closest.object.id) {
+          playSound(Sounds.HOVER);
+        }
+        this.selectedCubes[controller.userData.index] = closest;
+      }
+
+      if (
+        controller.userData.selectPressed &&
+        selectedCube &&
+        this.isHoveredOnSelectStart &&
+        Date.now() - this.selectPressedTime > 500 &&
+        !this.view.isInteractionDisabled
+      ) {
+        toggleFlag(selectedCube.object);
+        this.selectPressedTime = Date.now() + 6.048e8;
+      }
+
     }
 
     if (controller.userData.squeezePressed) {
@@ -228,38 +259,13 @@ export class Controls {
     }
   }
 
-  private handleNumberIntersections(controller) {
-    let intersectedNumber = this.intersectedNumbers[controller.userData.index];
-
-
-    let numbers = this.getIntersectedNumbers(controller);
-    let selectorPointPosition = new Vector3().setFromMatrixPosition(controller.children[1].matrixWorld)
-
-    let closest = numbers.sort((a, b) => {
-      let aPosition = new Vector3().setFromMatrixPosition(a.object.children[0].matrixWorld);
-      let bPosition = new Vector3().setFromMatrixPosition(b.object.children[0].matrixWorld);
-
-      return aPosition.distanceTo(selectorPointPosition) - bPosition.distanceTo(selectorPointPosition);
-    })[0];
-
-    if (
-      intersectedNumber &&
-      ((closest && intersectedNumber.object.id !== closest?.object.id) || !numbers.length)
-    ) {
-      this.unmarkNumber(controller);
-    }
-
-    if (numbers.length > 0 && closest.distance < controller.userData.selectorLength) {
-      const object = closest.object.children[0] as Mesh<Geometry, Material>;
-      object.material.opacity = 1;
-      object.scale.set(1.5, 1.5, 1.5);
-      this.intersectedNumbers[controller.userData.index] = closest;
-
-      // this.getAdjacentCubes(closest.object).forEach((cube: any) => cube.children[0].material.color.set(colors.markedEdges));
-    }
+  private unhoverCube(controller, selectedCube) {
+    selectedCube.object.material.opacity = selectedCube.object.userData.markedMine ? 0.7 : 0.4;
+    selectedCube.object.scale.set(1, 1, 1);
+    this.selectedCubes[controller.userData.index] = null;
   }
 
-  private unmarkNumber(controller) {
+  private unhoverNumber(controller) {
     let intersectedNumber = this.intersectedNumbers[controller.userData.index];
     if (intersectedNumber) {
       intersectedNumber.object.children[0].scale.set(1, 1, 1);
