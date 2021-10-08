@@ -206,6 +206,7 @@ export class Controls {
         ((closest && intersectedNumber.object.id !== closest?.object.id) || !intersects.length)
       ) {
         this.unhoverNumber(controller);
+        this.removeCubesHighlight();
       }
   
       if (intersects.length > 0 && closest.distance < controller.userData.selectorLength && !this.view.isEndAnimationRunning) {
@@ -214,7 +215,11 @@ export class Controls {
         object.scale.set(1.5, 1.5, 1.5);
         this.intersectedNumbers[controller.userData.index] = closest;
   
-        // this.getAdjacentCubes(closest.object).forEach((cube: any) => cube.children[0].material.color.set(colors.markedEdges));
+        if (controller.userData.selectPressed) {
+          this.getAdjacentCubes(closest.object).forEach((cube: any) => cube.children[0].material.color.set(colors.markedEdges));
+        } else {
+          this.removeCubesHighlight();
+        }
       }
 
       if (selectedCube) {
@@ -259,6 +264,10 @@ export class Controls {
     }
   }
 
+  private removeCubesHighlight() {
+    this.view.grid.children.forEach((cube: any) => cube.children[0].material.color.set(colors.edges));
+  }
+
   private unhoverCube(controller, selectedCube) {
     selectedCube.object.material.opacity = selectedCube.object.userData.markedMine ? 0.7 : 0.4;
     selectedCube.object.scale.set(1, 1, 1);
@@ -271,18 +280,16 @@ export class Controls {
       intersectedNumber.object.children[0].scale.set(1, 1, 1);
       intersectedNumber.object.children[0].material.opacity = 0.7;
       this.intersectedNumbers[controller.userData.index] = null;
-  
-      // this.view.grid.children.forEach((cube: any) => cube.children[0].material.color.set(colors.edges));
     }
   }
 
-  // private getAdjacentCubes(numBox): Object3D[] {
-  //   return this.view.grid.children.filter(cube => {
-  //     return Math.abs(cube.userData.coordinates.x - numBox.userData.coordinates.x) < 2 && 
-  //     Math.abs(cube.userData.coordinates.y - numBox.userData.coordinates.y) < 2 && 
-  //     Math.abs(cube.userData.coordinates.z - numBox.userData.coordinates.z) < 2
-  //   })
-  // }
+  private getAdjacentCubes(numBox): Object3D[] {
+    return this.view.grid.children.filter(cube => {
+      return Math.abs(cube.userData.coordinates.x - numBox.userData.coordinates.x) < 2 && 
+      Math.abs(cube.userData.coordinates.y - numBox.userData.coordinates.y) < 2 && 
+      Math.abs(cube.userData.coordinates.z - numBox.userData.coordinates.z) < 2
+    })
+  }
 
   private handleClick(controller) {
     let selected = this.selectedCubes[controller.userData.index];
