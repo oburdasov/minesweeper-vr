@@ -36,7 +36,7 @@ export class View {
   setPlaygroundPosition() {
     let headsetPosition = new Vector3().setFromMatrixPosition(this.camera.matrixWorld);
     let {x, y, z} = headsetPosition;
-    this.playground.position.set(x + 0.03, y - 0.1, z - 0.3);
+    this.playground.position.set(x + 0.03, y - 0.1, z - 0.4);
     this.playground.rotation.set(0, 45 * (Math.PI / 180), 0);
   }
 
@@ -116,26 +116,31 @@ export class View {
     this.isInteractionDisabled = true;
     this.isEndAnimationRunning = true;
 
-    let animate = (obj, difference) => {
-      let timeElapsed = 0;
-
-      let intervalId = setInterval(() => {
-        obj.position.add(difference);
-        obj.material.opacity -= 0.02;
-        obj.children[0].material.opacity -= 0.02;
-        timeElapsed += 17
-        if (timeElapsed >= 1500) {
-          clearInterval(intervalId);
-          this.isInteractionDisabled = false;
-          this.isEndAnimationRunning = false;
-        }
-      }, 17);
-    }
-
-    this.grid.children.concat(this.playground.children.filter(i => i.name === 'number-box' || i.name === 'mine')).forEach(obj => {
-      let difference = new Vector3().subVectors(obj.position, mine.position).divideScalar(100);
-      animate(obj, difference);
+    let itemsToAnimate = this.grid.children.concat(this.playground.children.filter(i => i.name === 'number-box' || i.name === 'mine')).map((object: any) => {
+      let difference = new Vector3().subVectors(object.position, mine.position).divideScalar(100);
+      return {
+        object,
+        difference
+      }
     })
+
+    let timeElapsed = 0;
+
+    let intervalId = setInterval(() => {
+      itemsToAnimate.forEach(i => {
+        i.object.position.add(i.difference);
+        i.object.material.opacity -= 0.01;
+        i.object.children[0].material.opacity -= 0.01;
+      })
+      timeElapsed += 17
+      if (timeElapsed >= 1500) {
+        clearInterval(intervalId);
+        this.isInteractionDisabled = false;
+        this.isEndAnimationRunning = false;
+      }
+    }, 17);
+
+
   }
 
   buildControllers(renderer: WebGLRenderer): Group[] {

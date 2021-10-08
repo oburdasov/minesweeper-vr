@@ -40,6 +40,7 @@ export function createNumber(
   boxMaterial.transparent = true;
   boxMaterial.opacity = 0;
   const numberBox = new Mesh(boxGeometry, boxMaterial);
+  numberBox.scale.set(1.2,1.2,1.2);
 
   const geometry = new TextGeometry(text, {
     font,
