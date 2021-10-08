@@ -31,7 +31,7 @@ renderer.setAnimationLoop(function () {
 
   let sources = renderer.xr.getSession()?.inputSources;
   sources?.forEach((s) => {
-    if (s.gamepad.axes[3]) {
+    if (s.gamepad?.axes[3]) {
       controls.updateSelectorLength(s);
     }
 

@@ -52,10 +52,10 @@ export class Game {
     this.setupGrid();
   }
 
-  gameover() {
+  gameover(mine: Object3D) {
     playSound(Sounds.GAME_OVER);
     this.view.showMines();
-    this.view.runEndAnimation();
+    this.view.runEndAnimation(mine);
     setTimeout(() => this.restart(), 1500);
   }
 

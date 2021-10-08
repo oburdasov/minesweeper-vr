@@ -25,7 +25,7 @@ export class View {
   cubeSize = 0.03;
   gridSize = difficulties[0].gridSize;
   isInteractionDisabled: boolean;
-  private isEndAnimationRunning: boolean;
+  isEndAnimationRunning: boolean;
 
   numberObjects: Object3D[] = [];
 
@@ -41,10 +41,8 @@ export class View {
   }
 
   rotateNumbersToCamera() {
-    if (!this.isEndAnimationRunning) {
-      let headsetPosition = new Vector3().setFromMatrixPosition(this.camera.matrixWorld);
-      this.numberObjects.forEach((n) => n.children[0].lookAt(headsetPosition));
-    }
+    let headsetPosition = new Vector3().setFromMatrixPosition(this.camera.matrixWorld);
+    this.numberObjects.forEach((n) => n.children[0].lookAt(headsetPosition));
   }
 
   swapCubeWithNumber(object: Mesh) {
@@ -114,31 +112,30 @@ export class View {
     }, 50);
   }
 
-  runEndAnimation() {
-    // this.isEndAnimationRunning = true;
-    // let animate = (obj) => {
-    //   let coef = (Math.random() - 0.5) / 1000;
-    //   let timeElapsed = 0;
-    //   let v = (new Vector3()).copy(obj.position);
-    //   obj.localToWorld(v);
-    //   this.playground.worldToLocal(v);
-    //   let intervalId = setInterval(() => {
-    //     obj.rotateX(coef * 20);
-    //     obj.rotateY(coef * 20);
-    //     obj.rotateZ(coef * 20);
-    //     obj.translateX(v.x / 100);
-    //     obj.translateZ(v.z / 100);
-    //     obj.translateY(v.y / 100);
-    //     timeElapsed += 17
-    //     if (timeElapsed >= 2500) {
-    //       clearInterval(intervalId);
-    //       this.isEndAnimationRunning = false
-    //     }
-    //   }, 17);
-    // }
-    // this.grid.children.concat(
-    //   this.playground.children.filter((c: Mesh) => c.geometry?.type === 'TextGeometry' || c.geometry?.type === 'IcosahedronGeometry'))
-    //   .forEach(obj => animate(obj))
+  runEndAnimation(mine: Object3D) {
+    this.isInteractionDisabled = true;
+    this.isEndAnimationRunning = true;
+
+    let animate = (obj, difference) => {
+      let timeElapsed = 0;
+
+      let intervalId = setInterval(() => {
+        obj.position.add(difference);
+        obj.material.opacity -= 0.02;
+        obj.children[0].material.opacity -= 0.02;
+        timeElapsed += 17
+        if (timeElapsed >= 1500) {
+          clearInterval(intervalId);
+          this.isInteractionDisabled = false;
+          this.isEndAnimationRunning = false;
+        }
+      }, 17);
+    }
+
+    this.grid.children.concat(this.playground.children.filter(i => i.name === 'number-box' || i.name === 'mine')).forEach(obj => {
+      let difference = new Vector3().subVectors(obj.position, mine.position).divideScalar(100);
+      animate(obj, difference);
+    })
   }
 
   buildControllers(renderer: WebGLRenderer): Group[] {

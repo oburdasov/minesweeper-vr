@@ -20,6 +20,8 @@ sounds[Sounds.GRID_INITIALIZATION] = new Audio(require('./assets/grid-initializa
 sounds[Sounds.CHAIN_OPENING] = new Audio(require('./assets/chain-opening.wav').default);
 
 sounds[Sounds.HOVER].volume = 0.5;
+sounds[Sounds.MARK].volume = 0.7;
+sounds[Sounds.UNMARK].volume = 0.7;
 
 export function playSound(name: Sounds) {
   sounds[name].currentTime = 0;

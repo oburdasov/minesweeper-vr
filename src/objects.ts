@@ -77,9 +77,6 @@ export function createCube(
   material.opacity = 0.4;
   const cube = new Mesh(geometry, material);
 
-  const edges = new EdgesGeometry(geometry);
-  const line = new LineSegments(edges, new LineBasicMaterial({color: colors.edges}));
-  cube.add(line);
 
   let cubeMargin = cubeSize * 1.2;
   let halfGrid = (cubeMargin * gridSize) / 2 - cubeMargin / 2;
@@ -88,6 +85,8 @@ export function createCube(
     position.y * cubeMargin - halfGrid,
     position.z * cubeMargin - halfGrid
   );
+
+  cube.add(createEdges(geometry));
   return cube;
 }
 
@@ -95,13 +94,23 @@ export function createMine(position: {x: number; y: number; z: number}, cubeSize
   const geometry = new IcosahedronGeometry(cubeSize / 2);
   const material = new MeshBasicMaterial({color: colors.mine});
   const mine = new Mesh(geometry, material);
+  material.transparent = true;
+  material.opacity = 0.7;
+
 
   mine.position.set(position.x, position.y, position.z);
 
+  mine.add(createEdges(geometry));
+  mine.name = 'mine';
+  return mine;
+}
+
+function createEdges(geometry): LineSegments {
   const edges = new EdgesGeometry(geometry);
   const line = new LineSegments(edges, new LineBasicMaterial({color: colors.edges}));
-  mine.add(line);
-  return mine;
+  line.material.transparent = true;
+  line.material.opacity = 0.7;
+  return line;
 }
 
 export function toggleFlag(cube: Mesh<Geometry, any>) {

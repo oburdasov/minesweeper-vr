@@ -122,8 +122,8 @@ export class Controls {
   handleButtons(source: XRInputSource,) {
     if (source.handedness === 'right') {
       if (source.gamepad.buttons[4]?.pressed) {
-        if (!this.isButtonAPressed && !this.view.isInteractionDisabled) {
-          this.randomizeColors();
+        if (!this.isLeftButtonAPressed && !this.view.isInteractionDisabled) {
+          this.toggleTheme();
         }
         this.isButtonAPressed = true;
       } else {
@@ -142,8 +142,8 @@ export class Controls {
 
     if (source.handedness === 'left') {
       if (source.gamepad.buttons[4]?.pressed) {
-        if (!this.isLeftButtonAPressed && !this.view.isInteractionDisabled) {
-          this.toggleTheme();
+        if (!this.isButtonAPressed && !this.view.isInteractionDisabled) {
+          this.randomizeColors();
         }
         this.isLeftButtonAPressed = true;
       } else {
@@ -208,7 +208,7 @@ export class Controls {
         this.unhoverNumber(controller);
       }
   
-      if (intersects.length > 0 && closest.distance < controller.userData.selectorLength) {
+      if (intersects.length > 0 && closest.distance < controller.userData.selectorLength && !this.view.isEndAnimationRunning) {
         const object = closest.object.children[0] as Mesh<Geometry, Material>;
         object.material.opacity = 1;
         object.scale.set(1.5, 1.5, 1.5);
@@ -229,7 +229,7 @@ export class Controls {
         this.unhoverCube(controller, selectedCube);
       }
   
-      if (intersects.length > 0 && closest.distance < controller.userData.selectorLength) {
+      if (intersects.length > 0 && closest.distance < controller.userData.selectorLength && !this.view.isEndAnimationRunning) {
         const object = closest.object as Mesh<Geometry, Material>;
         object.material.opacity = 1;
         object.scale.set(1.2, 1.2, 1.2);
@@ -302,7 +302,7 @@ export class Controls {
 
         if (selectedObject.userData.isMine) {
           this.view.isInteractionDisabled = true;
-          this.game.gameover();
+          this.game.gameover(selectedObject);
         } else if (selectedObject.userData.minesCount) {
           playSound(Sounds.SELECT);
           this.view.swapCubeWithNumber(selected.object);
