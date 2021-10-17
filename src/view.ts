@@ -25,7 +25,7 @@ export class View {
   cubeSize = 0.03;
   gridSize = difficulties[0].gridSize;
   isInteractionDisabled: boolean;
-  isEndAnimationRunning: boolean;
+  isHoverDisabled: boolean;
 
   numberObjects: Object3D[] = [];
 
@@ -114,7 +114,7 @@ export class View {
 
   runEndAnimation(mine: Object3D) {
     this.isInteractionDisabled = true;
-    this.isEndAnimationRunning = true;
+    this.isHoverDisabled = true;
 
     let itemsToAnimate = this.grid.children.concat(this.playground.children.filter(i => i.name === 'number-box' || i.name === 'mine')).map((object: any) => {
       let difference = new Vector3().subVectors(object.position, mine.position).divideScalar(100);
@@ -135,8 +135,7 @@ export class View {
       timeElapsed += 17
       if (timeElapsed >= 1500) {
         clearInterval(intervalId);
-        this.isInteractionDisabled = false;
-        this.isEndAnimationRunning = false;
+        this.isHoverDisabled = false;
       }
     }, 17);
 
@@ -174,6 +173,8 @@ export class View {
       const controllerModelFactory = new XRControllerModelFactory();
       grip.add(controllerModelFactory.createControllerModel(grip));
       this.scene.add(grip);
+
+      controller.addEventListener( 'connected', event => controller.userData.handedness = event.data.handedness);
     }
 
     return controllers;

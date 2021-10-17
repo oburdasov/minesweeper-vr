@@ -29,8 +29,8 @@ renderer.setAnimationLoop(function () {
   controls.checkControllers();
   view.rotateNumbersToCamera();
 
-  let sources = renderer.xr.getSession()?.inputSources;
-  sources?.forEach((s) => {
+  controls.inputSources = renderer.xr.getSession()?.inputSources;
+  controls.inputSources?.forEach((s) => {
     if (s.gamepad?.axes[3]) {
       controls.updateSelectorLength(s);
     }

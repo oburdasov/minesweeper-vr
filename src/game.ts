@@ -60,8 +60,13 @@ export class Game {
   }
 
   victory() {
+    this.view.isInteractionDisabled = true;
+    this.view.isHoverDisabled = true;
     playSound(Sounds.VICTORY);
-    setTimeout(() => this.restart(), 1500);
+    setTimeout(() => {
+      this.restart();
+      this.view.isHoverDisabled = false;
+    }, 1500);
   }
 
   setupGrid() {

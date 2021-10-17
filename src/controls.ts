@@ -42,6 +42,8 @@ export class Controls {
   private isLeftButtonAPressed: boolean;
   private isLeftButtonBPressed: boolean;
 
+  inputSources: XRInputSource[];
+
   constructor(private view: View, private game: Game, private renderer: WebGLRenderer) {
     this.controllers = view.buildControllers(renderer);
     this.setupControllerEvents();
@@ -85,7 +87,7 @@ export class Controls {
   }
 
   updateSelectorLength(source: XRInputSource) {
-    let controller = this.controllers[source.handedness === 'left' ? 0 : 1];
+    let controller = this.controllers.find(c => c.userData.handedness === source.handedness);
     controller.userData.selectorLength = Math.max(
       controller.userData.selectorLength - source.gamepad.axes[3] / 500,
       0.025
@@ -209,10 +211,13 @@ export class Controls {
     }
 
     if (closest?.object.name === 'number-box') {
-      if (intersects.length > 0 && closest.distance < controller.userData.selectorLength && !this.view.isEndAnimationRunning) {
+      if (intersects.length > 0 && closest.distance < controller.userData.selectorLength && !this.view.isHoverDisabled) {
         const object = closest.object.children[0] as Mesh<Geometry, Material>;
         object.material.opacity = 1;
         object.scale.set(1.5, 1.5, 1.5);
+        if (this.intersectedNumbers[controller.userData.index]?.object.id != closest.object.id) {
+          this.useHaptic(controller, 0.2, 10);
+        }
         this.intersectedNumbers[controller.userData.index] = closest;
   
         if (controller.userData.selectPressed) {
@@ -234,7 +239,7 @@ export class Controls {
         this.unhoverCube(controller, selectedCube);
       }
   
-      if (intersects.length > 0 && closest.distance < controller.userData.selectorLength && !this.view.isEndAnimationRunning) {
+      if (intersects.length > 0 && closest.distance < controller.userData.selectorLength && !this.view.isHoverDisabled) {
         const object = closest.object as Mesh<Geometry, Material>;
         object.material.opacity = 1;
         object.scale.set(1.2, 1.2, 1.2);
@@ -242,6 +247,7 @@ export class Controls {
   
         if (this.selectedCubes[controller.userData.index]?.object.id !== closest.object.id) {
           playSound(Sounds.HOVER);
+          this.useHaptic(controller, 0.2, 10);
         }
         this.selectedCubes[controller.userData.index] = closest;
       }
@@ -254,6 +260,7 @@ export class Controls {
         !this.view.isInteractionDisabled
       ) {
         toggleFlag(selectedCube.object);
+        this.useHaptic(controller, 0.2, 10);
         this.selectPressedTime = Date.now() + 6.048e8;
       }
 
@@ -264,6 +271,14 @@ export class Controls {
     }
   }
 
+  private useHaptic(controller, val, dur) {
+    this.inputSources.forEach((s: any) => {
+      if (s.handedness === controller.userData.handedness) {
+        let actuators = s.gamepad.hapticActuators[0] as any
+        actuators.pulse(val, dur);
+      }
+    });
+  } 
   private removeCubesHighlight() {
     this.view.grid.children.forEach((cube: any) => cube.material.opacity = 0.4);
   }
@@ -310,11 +325,13 @@ export class Controls {
         if (selectedObject.userData.isMine) {
           this.view.isInteractionDisabled = true;
           this.game.gameover(selectedObject);
+          this.useHaptic(controller, 0.4, 1000);
         } else if (selectedObject.userData.minesCount) {
           playSound(Sounds.SELECT);
           this.view.swapCubeWithNumber(selected.object);
           if (this.view.grid.children.length === this.game.totalMines) {
             this.view.isInteractionDisabled = true;
+            this.useHaptic(controller, 0.4, 500);
             this.game.victory();
           }
         } else {
